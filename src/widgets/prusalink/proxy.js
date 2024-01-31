@@ -14,8 +14,8 @@ async function retrieveFromAPI(url, key) {
   };
 
   const [status, , data] = await httpProxy(url, { headers });
-
-  if (status === 404) {
+  console.log(status);
+  if (status === 404 || status === 500) {
     return {};
   } 
   if (status !== 200) {
