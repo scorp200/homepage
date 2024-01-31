@@ -14,12 +14,8 @@ async function retrieveFromAPI(url, key) {
   };
 
   const [status, , data] = await httpProxy(url, { headers });
-  console.log(status);
-  if (status === 404 || status === 500) {
-    return {};
-  } 
   if (status !== 200) {
-    throw new Error(`Error getting data from prusalink: ${status}. Data: ${data.toString()}`);
+    return {}; // in case the printer is off we don't want to throw an exception
   }
 
   return JSON.parse(Buffer.from(data).toString());
