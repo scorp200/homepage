@@ -16,8 +16,9 @@ async function retrieveFromAPI(url, key) {
   const [status, , data] = await httpProxy(url, { headers });
 
   if (status === 404) {
-    return;
-  } else if (status !== 200) {
+    return {};
+  } 
+  if (status !== 200) {
     throw new Error(`Error getting data from prusalink: ${status}. Data: ${data.toString()}`);
   }
 
@@ -50,7 +51,7 @@ export default async function prusalinkProxyHandler(req, res) {
     const url = new URL(formatApiCall(apiURL, { endpoint, ...widget }));
     const prusalinkData = await retrieveFromAPI(url, widget.key);
 
-    if (prusalinkData === undefined) {
+    if (prusalinkData.state === undefined) {
       return res.status(404);
     }
 
