@@ -1,6 +1,7 @@
 /* eslint-disable react/no-array-index-key */
 import useSWR, { SWRConfig } from "swr";
 import Head from "next/head";
+import Script from "next/script";
 import dynamic from "next/dynamic";
 import classNames from "classnames";
 import { useTranslation } from "next-i18next";
@@ -10,7 +11,6 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useRouter } from "next/router";
 
 import Tab, { slugify } from "components/tab";
-import FileContent from "components/filecontent";
 import ServicesGroup from "components/services/group";
 import BookmarksGroup from "components/bookmarks/group";
 import Widget from "components/widgets/widget";
@@ -65,7 +65,7 @@ export async function getStaticProps() {
       },
     };
   } catch (e) {
-    if (logger) {
+    if (logger && e) {
       logger.error(e);
     }
     return {
@@ -161,10 +161,10 @@ function Index({ initialSettings, fallback }) {
 
 const headerStyles = {
   boxed:
-    "m-6 mb-0 sm:m-9 sm:mb-0 rounded-md shadow-md shadow-theme-900/10 dark:shadow-theme-900/20 bg-theme-100/20 dark:bg-white/5 p-3",
-  underlined: "m-6 mb-0 sm:m-9 sm:mb-1 border-b-2 pb-4 border-theme-800 dark:border-theme-200/50",
-  clean: "m-6 mb-0 sm:m-9 sm:mb-0",
-  boxedWidgets: "m-6 mb-0 sm:m-9 sm:mb-0 sm:mt-1",
+    "m-5 mb-0 sm:m-9 sm:mb-0 rounded-md shadow-md shadow-theme-900/10 dark:shadow-theme-900/20 bg-theme-100/20 dark:bg-white/5 p-3",
+  underlined: "m-5 mb-0 sm:m-9 sm:mb-1 border-b-2 pb-4 border-theme-800 dark:border-theme-200/50",
+  clean: "m-5 mb-0 sm:m-9 sm:mb-0",
+  boxedWidgets: "m-5 mb-0 sm:m-9 sm:mb-0 sm:mt-1",
 };
 
 function Home({ initialSettings }) {
@@ -211,12 +211,12 @@ function Home({ initialSettings }) {
       // if search provider is a list, try to retrieve from localstorage, fall back to the first
       searchProvider = getStoredProvider() ?? searchProviders[searchWidget.options.provider[0]];
     } else if (searchWidget.options?.provider === "custom") {
-      searchProvider = {
-        url: searchWidget.options.url,
-      };
+      searchProvider = searchWidget.options;
     } else {
       searchProvider = searchProviders[searchWidget.options?.provider];
     }
+    // to pass to quicklaunch
+    searchProvider.showSearchSuggestions = searchWidget.options?.showSearchSuggestions;
   }
   const headerStyle = settings?.headerStyle || "underlined";
 
@@ -224,7 +224,10 @@ function Home({ initialSettings }) {
     function handleKeyDown(e) {
       if (e.target.tagName === "BODY" || e.target.id === "inner_wrapper") {
         if (
-          (e.key.length === 1 && e.key.match(/(\w|\s)/g) && !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey)) ||
+          (e.key.length === 1 &&
+            e.key.match(/(\w|\s|[à-ü]|[À-Ü]|[\w\u0430-\u044f])/gi) &&
+            !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey)) ||
+          e.key.match(/([à-ü]|[À-Ü])/g) || // accented characters may require modifier keys
           (e.key === "v" && (e.ctrlKey || e.metaKey))
         ) {
           setSearching(true);
@@ -279,7 +282,7 @@ function Home({ initialSettings }) {
     return (
       <>
         {tabs.length > 0 && (
-          <div key="tabs" id="tabs" className="m-6 sm:m-9 sm:mt-4 sm:mb-0">
+          <div key="tabs" id="tabs" className="m-5 sm:m-9 sm:mt-4 sm:mb-0">
             <ul
               className={classNames(
                 "sm:flex rounded-md bg-theme-100/20 dark:bg-white/5",
@@ -308,6 +311,7 @@ function Home({ initialSettings }) {
                   fiveColumns={settings.fiveColumns}
                   disableCollapse={settings.disableCollapse}
                   useEqualHeights={settings.useEqualHeights}
+                  groupsInitiallyCollapsed={settings.groupsInitiallyCollapsed}
                 />
               ) : (
                 <BookmarksGroup
@@ -315,6 +319,7 @@ function Home({ initialSettings }) {
                   bookmarks={group}
                   layout={settings.layout?.[group.name]}
                   disableCollapse={settings.disableCollapse}
+                  groupsInitiallyCollapsed={settings.groupsInitiallyCollapsed}
                 />
               ),
             )}
@@ -330,6 +335,7 @@ function Home({ initialSettings }) {
                 layout={settings.layout?.[group.name]}
                 fiveColumns={settings.fiveColumns}
                 disableCollapse={settings.disableCollapse}
+                groupsInitiallyCollapsed={settings.groupsInitiallyCollapsed}
               />
             ))}
           </div>
@@ -342,6 +348,7 @@ function Home({ initialSettings }) {
                 bookmarks={group}
                 layout={settings.layout?.[group.name]}
                 disableCollapse={settings.disableCollapse}
+                groupsInitiallyCollapsed={settings.groupsInitiallyCollapsed}
               />
             ))}
           </div>
@@ -358,6 +365,7 @@ function Home({ initialSettings }) {
     settings.disableCollapse,
     settings.useEqualHeights,
     settings.cardBlur,
+    settings.groupsInitiallyCollapsed,
     initialSettings.layout,
   ]);
 
@@ -382,19 +390,11 @@ function Home({ initialSettings }) {
         )}
         <meta name="msapplication-TileColor" content={themes[settings.color || "slate"][settings.theme || "dark"]} />
         <meta name="theme-color" content={themes[settings.color || "slate"][settings.theme || "dark"]} />
+        <link rel="preload" href="/api/config/custom.css" as="style" />
+        <link rel="stylesheet" href="/api/config/custom.css" /> {/* eslint-disable-line @next/next/no-css-tags */}
       </Head>
 
-      <link rel="preload" href="/api/config/custom.css" as="fetch" crossOrigin="anonymous" />
-      <style data-name="custom.css">
-        <FileContent
-          path="custom.css"
-          loadingValue="/* Loading custom CSS... */"
-          errorValue="/* Failed to load custom CSS... */"
-          emptyValue="/* No custom CSS */"
-        />
-      </style>
-      <link rel="preload" href="/api/config/custom.js" as="fetch" crossOrigin="anonymous" />
-      <script data-name="custom.js" src="/api/config/custom.js" async />
+      <Script src="/api/config/custom.js" />
 
       <div className="relative container m-auto flex flex-col justify-start z-10 h-full">
         <QuickLaunch
@@ -415,11 +415,7 @@ function Home({ initialSettings }) {
               `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
           )}
         >
-          <div
-            id="widgets-wrap"
-            style={{ width: "calc(100% + 1rem)" }}
-            className={classNames("flex flex-row w-full flex-wrap justify-between -ml-2 -mr-2")}
-          >
+          <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
             {widgets && (
               <>
                 {widgets
@@ -436,7 +432,7 @@ function Home({ initialSettings }) {
                   id="information-widgets-right"
                   className={classNames(
                     "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
-                    headerStyle === "boxedWidgets" ? "sm:ml-4" : "sm:ml-2",
+                    "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
                   )}
                 >
                   {widgets
