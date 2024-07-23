@@ -873,6 +873,10 @@
         "users": "Users",
         "totalValue": "Total Value"
     },
+    "crowdsec": {
+        "alerts": "Alerts",
+        "bans": "Bans"
+    },
     "prusalink": {
       "print_progress": "Progress",
       "print_time": "Print time",

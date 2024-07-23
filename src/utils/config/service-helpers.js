@@ -393,6 +393,9 @@ export function cleanServiceGroups(groups) {
           enableBlocks,
           enableNowPlaying,
 
+          // glances, pihole
+          version,
+
           // glances
           chart,
           metric,
@@ -526,6 +529,9 @@ export function cleanServiceGroups(groups) {
         if (type === "kopia") {
           if (snapshotHost) cleanedService.widget.snapshotHost = snapshotHost;
           if (snapshotPath) cleanedService.widget.snapshotPath = snapshotPath;
+        }
+        if (["glances", "pihole"].includes(type)) {
+          if (version) cleanedService.widget.version = version;
         }
         if (type === "glances") {
           if (metric) cleanedService.widget.metric = metric;
